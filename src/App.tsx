@@ -66,6 +66,9 @@ function App() {
   const [timerReminderOff, setTimerReminderOff] = useState(false);
   const [timerReminderOn, setTimerReminderOn] = useState(false);
 
+  const [timerReminderOffTime, setTimerReminderOffTime] = useState(60);
+  const [timerReminderOnTime, setTimerReminderOnTime] = useState(60);
+
   const [newProjectName, setNewProjectName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -96,6 +99,14 @@ function App() {
 
     setTimerReminderOff(localStorage.getItem("timerRemindOff") == "true");
     setTimerReminderOn(localStorage.getItem("timerRemindOn") == "true");
+
+    setTimerReminderOffTime(
+      parseInt(localStorage.getItem("timerReminderOffTime") || "5")
+    );
+
+    setTimerReminderOnTime(
+      parseInt(localStorage.getItem("timerReminderOnTime") || "5")
+    );
   }, []);
 
   // Save projects
@@ -127,6 +138,8 @@ function App() {
 
     localStorage.setItem("timerRemindOff", "" + timerReminderOff);
     localStorage.setItem("timerRemindOn", "" + timerReminderOn);
+    localStorage.setItem("timerReminderOffTime", "" + timerReminderOffTime);
+    localStorage.setItem("timerReminderOnTime", "" + timerReminderOnTime);
   }, [
     showStitch,
     showRow,
@@ -134,6 +147,8 @@ function App() {
     showTimer,
     timerReminderOff,
     timerReminderOn,
+    timerReminderOffTime,
+    timerReminderOnTime,
   ]);
 
   const didMount = useRef(false);
@@ -343,11 +358,25 @@ function App() {
                 />
               </div>
               <div className="flex justify-between items-center">
-                <Input defaultValue={5} className="max-w-[60px]"></Input>
+                <Input
+                  value={timerReminderOnTime}
+                  type="number"
+                  onChange={(e) => {
+                    setTimerReminderOnTime(parseInt(e.target.value));
+                  }}
+                  className="max-w-[60px]"
+                ></Input>
                 <p> Minutes</p>
               </div>
               <div className="flex justify-between items-center">
-                <Input defaultValue={5} className="max-w-[60px]"></Input>
+                <Input
+                  value={timerReminderOffTime}
+                  type="number"
+                  onChange={(e) => {
+                    setTimerReminderOffTime(parseInt(e.target.value));
+                  }}
+                  className="max-w-[60px]"
+                ></Input>
                 <p> Minutes</p>
               </div>
             </CardContent>

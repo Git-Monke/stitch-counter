@@ -72,7 +72,7 @@ const Timer = ({
   }, [isOn]);
 
   return (
-    <Card className="bg-gradient-to-r from-stone-400 to-gray-50 h-full p-0 flex justify-center">
+    <Card className="h-full p-0 flex justify-center">
       <CardContent className="flex justify-between items-center w-full px-4">
         <span className="text-2xl font-mono tracking-wider">
           {formatTime(elapsedTime)}
@@ -116,7 +116,7 @@ const Counter = ({
   };
 
   return (
-    <Card className="flex flex-row h-full items-center p-4 justify-between">
+    <Card className="flex flex-row h-full items-center p-2 justify-between">
       <span className="font-mono">
         {propertyName}: {prop}
       </span>
@@ -163,6 +163,9 @@ const Popup = () => {
   const [timerReminderOff, setTimerReminderOff] = useState(false);
   const [timerReminderOn, setTimerReminderOn] = useState(false);
 
+  const [timerReminderOffTime, setTimerReminderOffTime] = useState(10000);
+  const [timerReminderOnTime, setTimerReminderOnTime] = useState(10000);
+
   const [lastInteractElapsedTime, setLastElapsedInteractTime] = useState(0);
   const [timerIsOn, setTimeIsOn] = useState(false);
 
@@ -176,9 +179,8 @@ const Popup = () => {
 
   const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Configuration for auto-pause (you can adjust this value or make it configurable in settings)
-  const INACTIVITY_THRESHOLD = 10000; // 30 seconds of inactivity before auto-pause
-  const REMINDER_INTERVAL = 10000;
+  const INACTIVITY_THRESHOLD = timerReminderOffTime * 60 * 1000;
+  const REMINDER_INTERVAL = timerReminderOnTime * 60 * 1000;
 
   // Load saved projects and preferences
   useEffect(() => {
@@ -209,6 +211,16 @@ const Popup = () => {
       setTimerReminderOff(localStorage.getItem("timerRemindOff") === "true");
       setTimerReminderOn(localStorage.getItem("timerRemindOn") === "true");
 
+      const timerReminderOffTime = localStorage.getItem("timerReminderOffTime");
+      const timerReminderOnTime = localStorage.getItem("timerReminderOnTime");
+
+      if (timerReminderOffTime) {
+        setTimerReminderOffTime(parseInt(timerReminderOffTime));
+      }
+
+      if (timerReminderOnTime) {
+        setTimerReminderOnTime(parseInt(timerReminderOnTime));
+      }
       // Initialize interaction time
     } catch (e) {
       console.log(e);
@@ -243,6 +255,7 @@ const Popup = () => {
 
   // Timer disabler
   useEffect(() => {
+    if (!timerReminderOff) return;
     if (selectedProject == null) return;
     if (selectedProject.time - lastInteractElapsedTime > INACTIVITY_THRESHOLD) {
       setTimeIsOn(false);
@@ -252,6 +265,8 @@ const Popup = () => {
   }, [selectedProject, lastInteractElapsedTime]);
 
   useEffect(() => {
+    if (!timerReminderOn) return;
+
     if (!timerIsOn) {
       reminderIntervalRef.current = setInterval(() => {
         toast("Don't forget to turn the timer back on!");
@@ -275,7 +290,7 @@ const Popup = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen p-1 gap-2">
+    <div className="w-full h-full grid grid-rows-4 p-1 gap-2">
       {showTimer && (
         // <Timer
         //   startingTime={projects[selectedProject].time}
