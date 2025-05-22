@@ -166,14 +166,19 @@ const Popup = () => {
   const [lastInteractElapsedTime, setLastElapsedInteractTime] = useState(0);
   const [timerIsOn, setTimeIsOn] = useState(false);
 
-  const [playRemindTimerOn] = useSound(turnOnNotif);
+  const [playRemindTimerOn] = useSound(turnOnNotif, {
+    interrupt: true,
+  });
   const [playNotifyTimerOff] = useSound(turnOffNotif, {
     volume: 2,
     interrupt: true,
   });
 
+  const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Configuration for auto-pause (you can adjust this value or make it configurable in settings)
-  const INACTIVITY_THRESHOLD = 1000; // 30 seconds of inactivity before auto-pause
+  const INACTIVITY_THRESHOLD = 10000; // 30 seconds of inactivity before auto-pause
+  const REMINDER_INTERVAL = 10000;
 
   // Load saved projects and preferences
   useEffect(() => {
@@ -246,6 +251,25 @@ const Popup = () => {
     }
   }, [selectedProject, lastInteractElapsedTime]);
 
+  useEffect(() => {
+    if (!timerIsOn) {
+      reminderIntervalRef.current = setInterval(() => {
+        toast("Don't forget to turn the timer back on!");
+        playRemindTimerOn();
+      }, REMINDER_INTERVAL);
+    } else {
+      if (reminderIntervalRef.current) {
+        clearInterval(reminderIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (reminderIntervalRef.current) {
+        clearInterval(reminderIntervalRef.current);
+      }
+    };
+  }, [timerIsOn]);
+
   if (selectedProjectName == "") {
     return <div className="p-4">No project selected</div>;
   }
@@ -271,6 +295,7 @@ const Popup = () => {
             setTimeIsOn(newState);
           }}
           onReset={() => {
+            setTimeIsOn(false);
             handleUpdateProject("time", 0);
           }}
         />
