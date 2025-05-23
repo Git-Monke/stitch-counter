@@ -11,4 +11,5 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: '/stitch-counter/', // Replace with your repo na
 });

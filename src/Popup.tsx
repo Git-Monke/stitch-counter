@@ -72,8 +72,8 @@ const Timer = ({
   }, [isOn]);
 
   return (
-    <Card className="h-full p-0 flex justify-center">
-      <CardContent className="flex justify-between items-center w-full px-4">
+    <Card className="h-full p-4 flex justify-center">
+      <CardContent className="flex p-0 justify-between items-center w-full">
         <span className="text-2xl font-mono tracking-wider">
           {formatTime(elapsedTime)}
         </span>
@@ -116,7 +116,7 @@ const Counter = ({
   };
 
   return (
-    <Card className="flex flex-row h-full items-center p-2 justify-between">
+    <Card className="flex flex-row h-full items-center p-4 justify-between flex-grow">
       <span className="font-mono">
         {propertyName}: {prop}
       </span>
@@ -290,17 +290,8 @@ const Popup = () => {
   }
 
   return (
-    <div className="w-full h-full grid grid-rows-4 p-1 gap-2">
+    <div className="w-full h-full flex flex-col p-1 gap-2">
       {showTimer && (
-        // <Timer
-        //   startingTime={projects[selectedProject].time}
-        //   handleUpdateTime={(updatedTime) => {
-        //     handleUpdateProject("time", updatedTime);
-        //   }}
-        //   updateLastInteract={updateLastInteract}
-        //   timeSinceLastInteract={lastInteractTime}
-        //   inactivityThreshold={INACTIVITY_THRESHOLD}
-        // />
         <Timer
           elapsedTime={selectedProject.time}
           onValueChange={(newTime) => handleUpdateProject("time", newTime)}

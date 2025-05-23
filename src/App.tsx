@@ -122,6 +122,7 @@ function App() {
   useEffect(() => {
     if (selectedProject != "") {
       localStorage.setItem("selectedProject", selectedProject.toString());
+      document.title = projects[selectedProject].name;
     }
   }, [selectedProject]);
 
