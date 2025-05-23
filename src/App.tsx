@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import Popup from "./Popup";
 import { Input } from "./components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -165,7 +166,7 @@ function App() {
     const currentOrigin = window.location.origin;
 
     window.open(
-      `${currentOrigin}/Popup`,
+      `${currentOrigin}`,
       "Stitch Tracker :D",
       "width=280,height=220,resizable=no,toolbar=no,menubar=no"
     );
@@ -256,7 +257,7 @@ function App() {
                     </div>
                   </DialogTrigger>
 
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="w-md">
                     <DialogHeader>
                       <DialogTitle>Create New Project</DialogTitle>
                     </DialogHeader>
