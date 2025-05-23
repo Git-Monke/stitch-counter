@@ -43,7 +43,7 @@ interface Project {
   stitches: number;
   rows: number;
   repeats: number;
-  timer: number;
+  time: number;
 }
 
 const randomId = function (length = 12) {
@@ -181,7 +181,7 @@ function App() {
       stitches: 0,
       rows: 0,
       repeats: 0,
-      timer: 0,
+      time: 0,
     };
 
     setProjects((prev) => ({ ...prev, [new_id]: newProject }));
