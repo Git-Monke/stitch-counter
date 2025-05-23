@@ -163,10 +163,10 @@ function App() {
   }, []);
 
   const openPopup = () => {
-    const currentOrigin = window.location.origin;
+    const currentOrigin = window.location.href;
 
     window.open(
-      `${currentOrigin}/stitch-counter/Popup`,
+      `${currentOrigin}`,
       "Stitch Tracker :D",
       "width=280,height=220,resizable=no,toolbar=no,menubar=no"
     );
