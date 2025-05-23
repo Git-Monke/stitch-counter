@@ -67,8 +67,8 @@ function App() {
   const [timerReminderOff, setTimerReminderOff] = useState(false);
   const [timerReminderOn, setTimerReminderOn] = useState(false);
 
-  const [timerReminderOffTime, setTimerReminderOffTime] = useState(60);
-  const [timerReminderOnTime, setTimerReminderOnTime] = useState(60);
+  const [timerReminderOffTime, setTimerReminderOffTime] = useState(5);
+  const [timerReminderOnTime, setTimerReminderOnTime] = useState(5);
 
   const [newProjectName, setNewProjectName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -168,7 +168,7 @@ function App() {
     window.open(
       `${currentOrigin}`,
       "Stitch Tracker :D",
-      "width=280,height=220,resizable=no,toolbar=no,menubar=no"
+      "width=280,height=220,resizable=no,toolbar=no,menubar=no,alwaysRaised=yes"
     );
   };
 
