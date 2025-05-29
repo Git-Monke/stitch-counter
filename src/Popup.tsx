@@ -15,12 +15,15 @@ import turnOnNotif from "../public/turn-on-reminder.mp3";
 
 import {
   Check,
+  Circle,
   Edit,
   Minus,
   Pause,
   Play,
   Plus,
+  PlusCircle,
   RefreshCw,
+  Trash,
   X,
 } from "lucide-react";
 
@@ -29,13 +32,17 @@ import { toast } from "sonner";
 
 import {
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarProvider,
   SidebarTrigger,
+  SidebarFooter,
+  SidebarMenuButton,
+  SidebarGroupLabel,
+  useSidebar,
 } from "./components/ui/sidebar";
 import { Input } from "./components/ui/input";
+import { Separator } from "@radix-ui/react-separator";
 
 interface ProjectData {
   stitches: number;
@@ -52,6 +59,24 @@ interface Project {
 }
 
 type Property = "stitches" | "rows" | "repeats" | "time";
+
+const getSums = (project: Project): ProjectData => {
+  let result: ProjectData = {
+    stitches: 0,
+    rows: 0,
+    repeats: 0,
+    time: 0,
+  };
+
+  for (const name in project.sections) {
+    for (let keyString in project.sections[name]) {
+      const key = keyString as keyof ProjectData;
+      result[key] += project.sections[name][key];
+    }
+  }
+
+  return result;
+};
 
 const formatTime = (timeInMs: number): string => {
   const totalSeconds = Math.floor(timeInMs / 1000);
@@ -78,11 +103,14 @@ const Timer = ({
   onReset: () => void;
 }) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (isOn) {
+      lastUpdateRef.current = Date.now();
       intervalRef.current = setInterval(() => {
-        onValueChange((elapsedTime += 10));
+        onValueChange((elapsedTime += Date.now() - lastUpdateRef.current));
+        lastUpdateRef.current = Date.now();
       }, 10);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -96,84 +124,153 @@ const Timer = ({
   }, [isOn]);
 
   return (
-    <Card className="h-full p-4 flex justify-center flex-1">
-      <CardContent className="flex p-0 justify-between items-center w-full">
-        <span className="text-2xl font-mono tracking-wider">
-          {formatTime(elapsedTime)}
+    <div className="flex items-center justify-between w-full p-2 shadow-md rounded-md bg-gradient-to-br from-white to-slate-50">
+      <div className="flex flex-col w-full">
+        <span className="text-sm font-medium text-slate-600 uppercase tracking-wide">
+          Time
         </span>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => {
-              onToggle(!isOn);
-            }}
-          >
-            {isOn ? <Pause /> : <Play />}
-          </Button>
-          <Button variant="destructive" onClick={onReset}>
-            <RefreshCw />
-          </Button>
+        <div className="flex justify-between">
+          <span className="text-2xl  font-bold tracking-wider">
+            {formatTime(elapsedTime)}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                onToggle(!isOn);
+              }}
+            >
+              {isOn ? <Pause /> : <Play />}
+            </Button>
+            <Button variant="destructive" onClick={onReset}>
+              <RefreshCw />
+            </Button>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
 interface CounterProps {
   propertyName: Property;
   updateProperty: (property: Property, amount: number) => void;
-  initialValue: number;
+  value: number;
   updateLastInteract: () => void; // New prop for interaction tracking
 }
 
 const Counter = ({
   propertyName,
   updateProperty,
-  initialValue,
+  value,
   updateLastInteract,
 }: CounterProps) => {
-  const [prop, setProp] = useState(initialValue);
-
   const handleUpdate = (amount: number) => {
     updateLastInteract(); // Update interaction timestamp
-    setProp(prop + amount);
-    updateProperty(propertyName, prop + amount);
+    updateProperty(propertyName, value + amount);
   };
 
   return (
-    <Card className="flex flex-row h-full items-center p-4 justify-between flex-1">
-      <span className="font-mono">
-        {propertyName}: {prop}
-      </span>
+    <div className="flex items-center justify-between w-full py-2 px-4 shadow-md rounded-md bg-gradient-to-br from-white to-slate-50">
+      <div className="flex flex-col w-full">
+        <span className="text-sm font-medium text-slate-600 uppercase tracking-wide">
+          {propertyName}
+        </span>
+        <div className="flex flex-row justify-between w-full">
+          <span className="text-2xl font-bold text-slate-900 mt-1">
+            {value}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                handleUpdate(1);
+              }}
+            >
+              <Plus />
+            </Button>
 
-      <div className="flex gap-2">
-        <Button
-          onClick={() => {
-            handleUpdate(1);
-          }}
-        >
-          <Plus />
-        </Button>
+            <Button
+              onClick={() => {
+                handleUpdate(-1);
+              }}
+            >
+              <Minus />
+            </Button>
 
-        <Button
-          onClick={() => {
-            handleUpdate(-1);
-          }}
-        >
-          <Minus />
-        </Button>
-
-        <Button
-          onClick={() => {
-            handleUpdate(-prop);
-          }}
-          variant="destructive"
-        >
-          <RefreshCw />
-        </Button>
+            <Button
+              onClick={() => {
+                handleUpdate(-value);
+              }}
+              variant="destructive"
+            >
+              <RefreshCw />
+            </Button>
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
+
+const SidebarButton = ({
+  name,
+  onClick,
+  onDelete,
+  canDelete = true,
+}: {
+  name: string;
+  onClick: () => void;
+  onDelete: () => void;
+  canDelete?: boolean;
+}) => {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <SidebarMenuButton
+      onClick={() => {
+        onClick();
+        toggleSidebar();
+      }}
+      className="flex justify-between w-full"
+    >
+      <p>{name}</p>
+      <Button
+        variant="ghost"
+        className="!py-0 cursor-pointer"
+        onClick={onDelete}
+      >
+        {canDelete && <Trash className="text-red-400 fill-current"></Trash>}
+      </Button>
+    </SidebarMenuButton>
+  );
+};
+
+const ShowTotals = ({ onClick }: { onClick: () => void }) => {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <Button
+      onClick={() => {
+        onClick();
+        toggleSidebar();
+      }}
+    >
+      <p>Show Totals</p>
+    </Button>
+  );
+};
+
+const SumDisplay = ({ value, name }: { value: any; name: string }) => (
+  <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="flex items-center justify-between w-full">
+      <div className="flex flex-col items-center w-full">
+        <span className="text-sm font-medium text-slate-600 uppercase tracking-wide">
+          {name}
+        </span>
+        <span className="text-2xl font-bold text-slate-900 mt-1">{value}</span>
+      </div>
+    </div>
+  </div>
+);
 
 const Popup = () => {
   const [projects, setProjects] = useState<{ [key: string]: Project }>({});
@@ -183,6 +280,8 @@ const Popup = () => {
 
   const [isRenamingSection, setRenamingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
+
+  const [isShowingTotals, setIsShowingTotals] = useState(true);
 
   const [showStitch, setShowStitch] = useState(false);
   const [showRow, setShowRow] = useState(false);
@@ -225,7 +324,6 @@ const Popup = () => {
 
       if (savedProjects) {
         let data: Record<string, Project> = JSON.parse(savedProjects);
-        console.log(data);
 
         if (savedProjects && savedSelectedProjectName) {
           const selectedProject = data[savedSelectedProjectName];
@@ -272,14 +370,13 @@ const Popup = () => {
     if (selectedProjectName == "") {
       return null;
     }
-    console.log(selectedSection);
     return projects[selectedProjectName].sections[selectedSection];
-  }, [projects, selectedProjectName]);
+  }, [projects, selectedProjectName, selectedSection]);
 
   // Function to update the last interaction timestamp
   const updateLastInteract = useCallback(() => {
     setLastElapsedInteractTime(selectedProject ? selectedProject.time : 0);
-  }, [selectedProject]);
+  }, [selectedProject, selectedSection]);
 
   // Project update handler
   const handleUpdateProject = useCallback(
@@ -300,7 +397,7 @@ const Popup = () => {
 
       setProjectData(newProject);
     },
-    [projects, selectedProjectName]
+    [projects, selectedProjectName, selectedSection]
   );
 
   // Timer disabler
@@ -312,7 +409,7 @@ const Popup = () => {
       playNotifyTimerOff();
       toast("Timer disabled due to inactivity");
     }
-  }, [selectedProject, lastInteractElapsedTime]);
+  }, [selectedProject, selectedSection, lastInteractElapsedTime]);
 
   useEffect(() => {
     if (!timerReminderOn) return;
@@ -340,7 +437,49 @@ const Popup = () => {
     setNewSectionName(selectedSection);
   }
 
-  function handleCreateNewSection() {}
+  function handleCreateNewSection() {
+    let new_title = "Unnamed";
+    let unnamed_index = 1;
+    const sections = projects[selectedProjectName].sections;
+
+    if (new_title in sections) {
+      while (new_title in sections) {
+        new_title = `Unnamed-${unnamed_index}`;
+        unnamed_index += 1;
+      }
+    }
+
+    let newProject = {
+      ...projects,
+      [selectedProjectName]: {
+        ...projects[selectedProjectName],
+        sections: {
+          ...projects[selectedProjectName].sections,
+          [new_title]: {
+            stitches: 0,
+            rows: 0,
+            repeats: 0,
+            time: 0,
+          },
+        },
+      },
+    };
+
+    setProjectData(newProject);
+    setSelectedSection(new_title);
+    setIsShowingTotals(false);
+    setTimeIsOn(false);
+  }
+
+  function handleDeleteSection(name: string) {
+    let newProject = {
+      ...projects,
+    };
+
+    delete newProject[selectedSection].sections[name];
+
+    setProjectData(newProject);
+  }
 
   function handleRenameSelectedSection() {
     let newProject = {
@@ -364,32 +503,74 @@ const Popup = () => {
     setRenamingSection(false);
   }
 
-  function handleSelectSection() {}
-
   if (selectedProjectName == "") {
     return <div className="p-4">No project selected</div>;
   }
 
+  if (selectedProject == null) {
+    return "Loading data...";
+  }
+
+  const sums = getSums(projects[selectedProjectName]);
+
   return (
     <>
-      {selectedProject != null ? (
-        <SidebarProvider>
-          <Sidebar></Sidebar>
-          <div className="flex flex-col w-full h-full p-1 gap-2">
-            <div className="flex gap-2 items-center h-full">
-              <SidebarTrigger className="flex-none"></SidebarTrigger>
-              <div className="w-px h-4 bg-gray-800 block"></div>
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Your Sections</SidebarGroupLabel>
+              {Object.entries(projects[selectedProjectName].sections).map(
+                ([name, data]) => {
+                  return (
+                    <SidebarButton
+                      name={name}
+                      key={name}
+                      onClick={() => {
+                        setSelectedSection(name);
+                        setTimeIsOn(false);
+                        setIsShowingTotals(false);
+                      }}
+                      onDelete={() => {
+                        handleDeleteSection(name);
+                      }}
+                      canDelete={name != selectedSection}
+                    />
+                  );
+                }
+              )}
+              <SidebarMenuButton onClick={handleCreateNewSection}>
+                <Plus className="text-gray-700 fill-current"></Plus>
+                <span className="text-gray-700">New Section</span>
+              </SidebarMenuButton>
+            </SidebarGroup>
+          </SidebarContent>
+          <SidebarFooter>
+            <ShowTotals
+              onClick={() => {
+                setIsShowingTotals(true);
+              }}
+            />
+          </SidebarFooter>
+        </Sidebar>
+        <div className="flex flex-col w-full h-full p-1 gap-2">
+          <div className="flex gap-2 items-center h-full">
+            <SidebarTrigger className="flex-none"></SidebarTrigger>
 
-              {!isRenamingSection ? (
+            {!isShowingTotals &&
+              (!isRenamingSection ? (
                 <>
-                  <span className="pl-1">{selectedSection}</span>
-                  <Button
-                    variant="ghost"
-                    onClick={handleEnableEditingName}
-                    className="!px-0 m-0 cursor-pointer"
-                  >
-                    <Edit></Edit>
-                  </Button>
+                  <div className="w-px h-4 bg-gray-800 block"></div>
+                  <>
+                    <span className="pl-1">{selectedSection}</span>
+                    <Button
+                      variant="ghost"
+                      onClick={handleEnableEditingName}
+                      className="!px-0 m-0 cursor-pointer"
+                    >
+                      <Edit></Edit>
+                    </Button>
+                  </>
                 </>
               ) : (
                 <>
@@ -428,9 +609,10 @@ const Popup = () => {
                     <X></X>
                   </Button>
                 </>
-              )}
-            </div>
-            <div className="flex flex-col flex-1 min-h-0">
+              ))}
+          </div>
+          {!isShowingTotals ? (
+            <div className="flex flex-col flex-1 min-h-0 p-2 pt-0 gap-2">
               {showTimer && (
                 <Timer
                   elapsedTime={selectedProject.time}
@@ -452,7 +634,7 @@ const Popup = () => {
                 <Counter
                   propertyName="stitches"
                   updateProperty={handleUpdateProject}
-                  initialValue={selectedProject.stitches}
+                  value={selectedProject.stitches}
                   updateLastInteract={updateLastInteract}
                 />
               )}
@@ -460,7 +642,7 @@ const Popup = () => {
                 <Counter
                   propertyName="rows"
                   updateProperty={handleUpdateProject}
-                  initialValue={selectedProject.rows}
+                  value={selectedProject.rows}
                   updateLastInteract={updateLastInteract}
                 />
               )}
@@ -468,17 +650,62 @@ const Popup = () => {
                 <Counter
                   propertyName="repeats"
                   updateProperty={handleUpdateProject}
-                  initialValue={selectedProject.repeats}
+                  value={selectedProject.repeats}
                   updateLastInteract={updateLastInteract}
                 />
               )}
             </div>
-            <Toaster />
-          </div>
-        </SidebarProvider>
-      ) : (
-        "Loading data..."
-      )}
+          ) : (
+            <div className="p-8 pt-4 w-full min-h-[400px] bg-gradient-to-br from-white to-slate-50">
+              {/* Header Section */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-3 mb-2">
+                  <div className="w-8 h-1 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full"></div>
+                  <h2 className="font-bold text-3xl text-slate-800 tracking-tight">
+                    Grand Totals
+                  </h2>
+                  <div className="w-8 h-1 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full"></div>
+                </div>
+                <p className="text-slate-600 text-sm">Project Summary</p>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                {showTimer && (
+                  <SumDisplay
+                    value={formatTime(sums.time)}
+                    name="Time Invested"
+                  />
+                )}
+                {showStitch && (
+                  <SumDisplay
+                    value={sums.stitches.toLocaleString()}
+                    name="Total Stitches"
+                  />
+                )}
+                {showRow && (
+                  <SumDisplay
+                    value={sums.rows.toLocaleString()}
+                    name="Rows Completed"
+                  />
+                )}
+                {showRepeat && (
+                  <SumDisplay
+                    value={sums.repeats.toLocaleString()}
+                    name="Pattern Repeats"
+                  />
+                )}
+              </div>
+
+              {/* Bottom Accent */}
+              <div className="mt-8 flex justify-center">
+                <div className="w-24 h-1 bg-gradient-to-r from-transparent via-slate-300 to-transparent rounded-full"></div>
+              </div>
+            </div>
+          )}
+          <Toaster />
+        </div>
+      </SidebarProvider>
     </>
   );
 };
