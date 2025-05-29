@@ -13,18 +13,42 @@ import useSound from "use-sound";
 import turnOffNotif from "../public/turn-off-notif.mp3";
 import turnOnNotif from "../public/turn-on-reminder.mp3";
 
-import { Minus, Pause, Play, Plus, RefreshCw } from "lucide-react";
+import {
+  Check,
+  Edit,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  X,
+} from "lucide-react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
-interface Project {
-  name: string;
-  id: number;
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarProvider,
+  SidebarTrigger,
+} from "./components/ui/sidebar";
+import { Input } from "./components/ui/input";
+
+interface ProjectData {
   stitches: number;
   rows: number;
   repeats: number;
   time: number;
+}
+
+interface Project {
+  name: string;
+  id: string;
+  selectedSection: string;
+  sections: Record<string, ProjectData>;
 }
 
 type Property = "stitches" | "rows" | "repeats" | "time";
@@ -72,7 +96,7 @@ const Timer = ({
   }, [isOn]);
 
   return (
-    <Card className="h-full p-4 flex justify-center">
+    <Card className="h-full p-4 flex justify-center flex-1">
       <CardContent className="flex p-0 justify-between items-center w-full">
         <span className="text-2xl font-mono tracking-wider">
           {formatTime(elapsedTime)}
@@ -116,7 +140,7 @@ const Counter = ({
   };
 
   return (
-    <Card className="flex flex-row h-full items-center p-4 justify-between flex-grow">
+    <Card className="flex flex-row h-full items-center p-4 justify-between flex-1">
       <span className="font-mono">
         {propertyName}: {prop}
       </span>
@@ -155,6 +179,11 @@ const Popup = () => {
   const [projects, setProjects] = useState<{ [key: string]: Project }>({});
   const [selectedProjectName, setSelectedProjectName] = useState("");
 
+  const [selectedSection, setSelectedSection] = useState("Unnamed");
+
+  const [isRenamingSection, setRenamingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
+
   const [showStitch, setShowStitch] = useState(false);
   const [showRow, setShowRow] = useState(false);
   const [showRepeat, setShowRepeat] = useState(false);
@@ -182,21 +211,33 @@ const Popup = () => {
   const INACTIVITY_THRESHOLD = timerReminderOffTime * 60 * 1000;
   const REMINDER_INTERVAL = timerReminderOnTime * 60 * 1000;
 
+  function setProjectData(newProjects: Record<string, Project>) {
+    setProjects(newProjects);
+    localStorage.setItem("projects", JSON.stringify(newProjects));
+  }
+
   // Load saved projects and preferences
   useEffect(() => {
     try {
       const savedProjects = localStorage.getItem("projects");
-      const savedSelectedProjectName = localStorage.getItem("selectedProject");
-
-      console.log(savedProjects, savedSelectedProjectName);
+      const savedSelectedProjectName: string | null =
+        localStorage.getItem("selectedProject");
 
       if (savedProjects) {
-        const data = JSON.parse(savedProjects);
-        setProjects(data);
+        let data: Record<string, Project> = JSON.parse(savedProjects);
+        console.log(data);
 
         if (savedProjects && savedSelectedProjectName) {
-          setLastElapsedInteractTime(data[savedSelectedProjectName].time);
+          const selectedProject = data[savedSelectedProjectName];
+
+          let selectedSection = selectedProject.selectedSection;
+          let sectionData = selectedProject.sections;
+
+          setLastElapsedInteractTime(sectionData[selectedSection].time);
+          setSelectedSection(selectedSection);
         }
+
+        setProjects(data);
       }
 
       if (savedSelectedProjectName) {
@@ -228,12 +269,16 @@ const Popup = () => {
   }, []);
 
   const selectedProject = useMemo(() => {
-    return projects[selectedProjectName];
+    if (selectedProjectName == "") {
+      return null;
+    }
+    console.log(selectedSection);
+    return projects[selectedProjectName].sections[selectedSection];
   }, [projects, selectedProjectName]);
 
   // Function to update the last interaction timestamp
   const updateLastInteract = useCallback(() => {
-    setLastElapsedInteractTime(selectedProject.time);
+    setLastElapsedInteractTime(selectedProject ? selectedProject.time : 0);
   }, [selectedProject]);
 
   // Project update handler
@@ -243,12 +288,17 @@ const Popup = () => {
         ...projects,
         [selectedProjectName]: {
           ...projects[selectedProjectName],
-          [property]: amount,
+          sections: {
+            ...projects[selectedProjectName].sections,
+            [selectedSection]: {
+              ...projects[selectedProjectName].sections[selectedSection],
+              [property]: amount,
+            },
+          },
         },
       };
 
-      setProjects(newProject);
-      localStorage.setItem("projects", JSON.stringify(newProject));
+      setProjectData(newProject);
     },
     [projects, selectedProjectName]
   );
@@ -285,57 +335,151 @@ const Popup = () => {
     };
   }, [timerIsOn]);
 
+  function handleEnableEditingName() {
+    setRenamingSection(true);
+    setNewSectionName(selectedSection);
+  }
+
+  function handleCreateNewSection() {}
+
+  function handleRenameSelectedSection() {
+    let newProject = {
+      ...projects,
+      [selectedProjectName]: {
+        ...projects[selectedProjectName],
+        sections: {
+          ...projects[selectedProjectName].sections,
+          [newSectionName]: {
+            ...projects[selectedProjectName].sections[selectedSection],
+          },
+        },
+      },
+    };
+
+    delete newProject[selectedProjectName].sections[selectedSection];
+    newProject[selectedProjectName].selectedSection = newSectionName;
+
+    setProjectData(newProject);
+    setSelectedSection(newSectionName);
+    setRenamingSection(false);
+  }
+
+  function handleSelectSection() {}
+
   if (selectedProjectName == "") {
     return <div className="p-4">No project selected</div>;
   }
 
   return (
-    <div className="w-full h-full flex flex-col p-1 gap-2">
-      {showTimer && (
-        <Timer
-          elapsedTime={selectedProject.time}
-          onValueChange={(newTime) => handleUpdateProject("time", newTime)}
-          isOn={timerIsOn}
-          onToggle={(newState) => {
-            updateLastInteract();
-            setTimeIsOn(newState);
-          }}
-          onReset={() => {
-            setTimeIsOn(false);
-            handleUpdateProject("time", 0);
-          }}
-        />
-      )}
+    <>
+      {selectedProject != null ? (
+        <SidebarProvider>
+          <Sidebar></Sidebar>
+          <div className="flex flex-col w-full h-full p-1 gap-2">
+            <div className="flex gap-2 items-center h-full">
+              <SidebarTrigger className="flex-none"></SidebarTrigger>
+              <div className="w-px h-4 bg-gray-800 block"></div>
 
-      {showStitch && (
-        <Counter
-          propertyName="stitches"
-          updateProperty={handleUpdateProject}
-          initialValue={selectedProject.stitches}
-          updateLastInteract={updateLastInteract}
-        />
-      )}
+              {!isRenamingSection ? (
+                <>
+                  <span className="pl-1">{selectedSection}</span>
+                  <Button
+                    variant="ghost"
+                    onClick={handleEnableEditingName}
+                    className="!px-0 m-0 cursor-pointer"
+                  >
+                    <Edit></Edit>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Input
+                    value={newSectionName}
+                    onChange={(e) => setNewSectionName(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.key === "Enter" && handleRenameSelectedSection();
+                    }}
+                    autoFocus={isRenamingSection}
+                  ></Input>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      handleRenameSelectedSection();
+                    }}
+                    className={`m-0 cursor-pointer ${
+                      newSectionName in
+                        projects[selectedProjectName].sections &&
+                      "disabled opacity-50"
+                    }`}
+                    disabled={
+                      newSectionName in projects[selectedProjectName].sections
+                    }
+                  >
+                    <Check></Check>
+                  </Button>
 
-      {showRow && (
-        <Counter
-          propertyName="rows"
-          updateProperty={handleUpdateProject}
-          initialValue={selectedProject.rows}
-          updateLastInteract={updateLastInteract}
-        />
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setRenamingSection(false);
+                    }}
+                    className={`m-0 cursor-pointer`}
+                  >
+                    <X></X>
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex flex-col flex-1 min-h-0">
+              {showTimer && (
+                <Timer
+                  elapsedTime={selectedProject.time}
+                  onValueChange={(newTime) =>
+                    handleUpdateProject("time", newTime)
+                  }
+                  isOn={timerIsOn}
+                  onToggle={(newState) => {
+                    updateLastInteract();
+                    setTimeIsOn(newState);
+                  }}
+                  onReset={() => {
+                    setTimeIsOn(false);
+                    handleUpdateProject("time", 0);
+                  }}
+                />
+              )}
+              {showStitch && (
+                <Counter
+                  propertyName="stitches"
+                  updateProperty={handleUpdateProject}
+                  initialValue={selectedProject.stitches}
+                  updateLastInteract={updateLastInteract}
+                />
+              )}
+              {showRow && (
+                <Counter
+                  propertyName="rows"
+                  updateProperty={handleUpdateProject}
+                  initialValue={selectedProject.rows}
+                  updateLastInteract={updateLastInteract}
+                />
+              )}
+              {showRepeat && (
+                <Counter
+                  propertyName="repeats"
+                  updateProperty={handleUpdateProject}
+                  initialValue={selectedProject.repeats}
+                  updateLastInteract={updateLastInteract}
+                />
+              )}
+            </div>
+            <Toaster />
+          </div>
+        </SidebarProvider>
+      ) : (
+        "Loading data..."
       )}
-
-      {showRepeat && (
-        <Counter
-          propertyName="repeats"
-          updateProperty={handleUpdateProject}
-          initialValue={selectedProject.repeats}
-          updateLastInteract={updateLastInteract}
-        />
-      )}
-
-      <Toaster />
-    </div>
+    </>
   );
 };
 

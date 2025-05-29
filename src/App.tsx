@@ -35,15 +35,20 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import { PlusCircle, FolderPlus, Scissors } from "lucide-react";
+import { PlusCircle, FolderPlus, Scissors, Trash } from "lucide-react";
 
-interface Project {
-  name: string;
-  id: string;
+interface ProjectData {
   stitches: number;
   rows: number;
   repeats: number;
   time: number;
+}
+
+interface Project {
+  name: string;
+  id: string;
+  selectedSection: string;
+  sections: Record<string, ProjectData>;
 }
 
 const randomId = function (length = 12) {
@@ -121,10 +126,12 @@ function App() {
 
   // Save selected project
   useEffect(() => {
-    if (selectedProject != "") {
-      localStorage.setItem("selectedProject", selectedProject.toString());
-      document.title = projects[selectedProject].name;
-    }
+    try {
+      if (selectedProject != "" && selectedProject != undefined) {
+        localStorage.setItem("selectedProject", selectedProject.toString());
+        document.title = projects[selectedProject].name;
+      }
+    } catch {}
   }, [selectedProject]);
 
   // Save options
@@ -178,16 +185,28 @@ function App() {
     const newProject: Project = {
       name: newProjectName,
       id: new_id,
-      stitches: 0,
-      rows: 0,
-      repeats: 0,
-      time: 0,
+      selectedSection: "Unnamed",
+      sections: {
+        Unnamed: {
+          stitches: 0,
+          rows: 0,
+          repeats: 0,
+          time: 0,
+        },
+      },
     };
 
     setProjects((prev) => ({ ...prev, [new_id]: newProject }));
     setSelectedProject(new_id);
     setNewProjectName("");
     setIsDialogOpen(false);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    const newProjects = { ...projects };
+    delete newProjects[id];
+    setProjects(newProjects);
+    setSelectedProject("");
   };
 
   const isPopup = window.opener !== null;
@@ -237,8 +256,20 @@ function App() {
                           setSelectedProject(project.id);
                         }}
                       >
-                        <div key={project.id}>
+                        <div
+                          key={project.id}
+                          className="flex justify-between items-center"
+                        >
                           <p>{project.name}</p>
+                          <Button
+                            variant="ghost"
+                            className="!py-0 cursor-pointer"
+                            onClick={() => {
+                              handleDeleteProject(project.id);
+                            }}
+                          >
+                            <Trash className="text-red-500 fill-current"></Trash>
+                          </Button>
                         </div>
                       </div>
                     </div>
