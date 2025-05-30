@@ -233,13 +233,18 @@ const SidebarButton = ({
       className="flex justify-between w-full"
     >
       <p>{name}</p>
-      <Button
-        variant="ghost"
-        className="!py-0 cursor-pointer"
-        onClick={onDelete}
-      >
-        {canDelete && <Trash className="text-red-400 fill-current"></Trash>}
-      </Button>
+      {canDelete && (
+        <Button
+          variant="ghost"
+          className="!py-0 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Trash className="text-red-400 fill-current"></Trash>
+        </Button>
+      )}
     </SidebarMenuButton>
   );
 };
@@ -272,6 +277,22 @@ const SumDisplay = ({ value, name }: { value: any; name: string }) => (
   </div>
 );
 
+const CreateNewSection = ({ onClick }: { onClick: () => void }) => {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <SidebarMenuButton
+      onClick={() => {
+        onClick();
+        toggleSidebar();
+      }}
+    >
+      <Plus className="text-gray-700 fill-current"></Plus>
+      <span className="text-gray-700">New Section</span>
+    </SidebarMenuButton>
+  );
+};
+
 const Popup = () => {
   const [projects, setProjects] = useState<{ [key: string]: Project }>({});
   const [selectedProjectName, setSelectedProjectName] = useState("");
@@ -281,7 +302,7 @@ const Popup = () => {
   const [isRenamingSection, setRenamingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
 
-  const [isShowingTotals, setIsShowingTotals] = useState(true);
+  const [isShowingTotals, setIsShowingTotals] = useState(false);
 
   const [showStitch, setShowStitch] = useState(false);
   const [showRow, setShowRow] = useState(false);
@@ -315,6 +336,19 @@ const Popup = () => {
     localStorage.setItem("projects", JSON.stringify(newProjects));
   }
 
+  function handleSetSelectedSection(newSection: string) {
+    const newProject: Record<string, Project> = {
+      ...projects,
+      [selectedProjectName]: {
+        ...projects[selectedProjectName],
+        selectedSection: newSection,
+      },
+    };
+
+    setSelectedSection(newSection);
+    localStorage.setItem("projects", JSON.stringify(newProject));
+  }
+
   // Load saved projects and preferences
   useEffect(() => {
     try {
@@ -330,6 +364,7 @@ const Popup = () => {
 
           let selectedSection = selectedProject.selectedSection;
           let sectionData = selectedProject.sections;
+          console.log(selectedProject, selectedSection, sectionData);
 
           setLastElapsedInteractTime(sectionData[selectedSection].time);
           setSelectedSection(selectedSection);
@@ -466,7 +501,7 @@ const Popup = () => {
     };
 
     setProjectData(newProject);
-    setSelectedSection(new_title);
+    handleSetSelectedSection(new_title);
     setIsShowingTotals(false);
     setTimeIsOn(false);
   }
@@ -476,12 +511,24 @@ const Popup = () => {
       ...projects,
     };
 
-    delete newProject[selectedSection].sections[name];
+    delete newProject[selectedProjectName].sections[name];
 
     setProjectData(newProject);
   }
 
   function handleRenameSelectedSection() {
+    if (newSectionName == selectedSection) {
+      setRenamingSection(false);
+      return;
+    }
+
+    if (
+      newSectionName in projects[selectedProjectName].sections &&
+      newSectionName != selectedSection
+    ) {
+      return;
+    }
+
     let newProject = {
       ...projects,
       [selectedProjectName]: {
@@ -499,7 +546,7 @@ const Popup = () => {
     newProject[selectedProjectName].selectedSection = newSectionName;
 
     setProjectData(newProject);
-    setSelectedSection(newSectionName);
+    handleSetSelectedSection(newSectionName);
     setRenamingSection(false);
   }
 
@@ -527,7 +574,7 @@ const Popup = () => {
                       name={name}
                       key={name}
                       onClick={() => {
-                        setSelectedSection(name);
+                        handleSetSelectedSection(name);
                         setTimeIsOn(false);
                         setIsShowingTotals(false);
                       }}
@@ -539,10 +586,9 @@ const Popup = () => {
                   );
                 }
               )}
-              <SidebarMenuButton onClick={handleCreateNewSection}>
-                <Plus className="text-gray-700 fill-current"></Plus>
-                <span className="text-gray-700">New Section</span>
-              </SidebarMenuButton>
+              <CreateNewSection
+                onClick={handleCreateNewSection}
+              ></CreateNewSection>
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter>
@@ -555,7 +601,12 @@ const Popup = () => {
         </Sidebar>
         <div className="flex flex-col w-full h-full p-1 gap-2">
           <div className="flex gap-2 items-center h-full">
-            <SidebarTrigger className="flex-none"></SidebarTrigger>
+            <SidebarTrigger
+              className={`flex-none ${
+                isRenamingSection && "opacity-30"
+              } transition-all duration-250 ease-in-out`}
+              disabled={isRenamingSection}
+            ></SidebarTrigger>
 
             {!isShowingTotals &&
               (!isRenamingSection ? (
@@ -583,30 +634,17 @@ const Popup = () => {
                     autoFocus={isRenamingSection}
                   ></Input>
                   <Button
-                    variant="ghost"
                     onClick={() => {
                       handleRenameSelectedSection();
                     }}
-                    className={`m-0 cursor-pointer ${
+                    className={`m-0 cursor-pointer `}
+                    disabled={
                       newSectionName in
                         projects[selectedProjectName].sections &&
-                      "disabled opacity-50"
-                    }`}
-                    disabled={
-                      newSectionName in projects[selectedProjectName].sections
+                      newSectionName != selectedSection
                     }
                   >
                     <Check></Check>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setRenamingSection(false);
-                    }}
-                    className={`m-0 cursor-pointer`}
-                  >
-                    <X></X>
                   </Button>
                 </>
               ))}
