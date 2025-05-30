@@ -109,7 +109,7 @@ const Timer = ({
     if (isOn) {
       lastUpdateRef.current = Date.now();
       intervalRef.current = setInterval(() => {
-        onValueChange((elapsedTime += Date.now() - lastUpdateRef.current));
+        onValueChange(elapsedTime + Date.now() - lastUpdateRef.current);
         lastUpdateRef.current = Date.now();
       }, 10);
     } else if (intervalRef.current) {
@@ -121,7 +121,7 @@ const Timer = ({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isOn]);
+  }, [isOn, elapsedTime]);
 
   return (
     <div className="flex items-center justify-between w-full p-2 shadow-md rounded-md bg-gradient-to-br from-white to-slate-50">
@@ -216,11 +216,13 @@ const SidebarButton = ({
   onClick,
   onDelete,
   canDelete = true,
+  selected = false,
 }: {
   name: string;
   onClick: () => void;
   onDelete: () => void;
   canDelete?: boolean;
+  selected?: boolean;
 }) => {
   const { toggleSidebar } = useSidebar();
 
@@ -230,20 +232,21 @@ const SidebarButton = ({
         onClick();
         toggleSidebar();
       }}
-      className="flex justify-between w-full"
+      className={`flex justify-between w-full ${
+        selected && "bg-stone-100 shadow-sm"
+      }`}
     >
       <p>{name}</p>
       {canDelete && (
-        <Button
-          variant="ghost"
-          className="!py-0 cursor-pointer"
+        <div
+          className="p-1 hover:bg-red-100 rounded cursor-pointer transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
         >
-          <Trash className="text-red-400 fill-current"></Trash>
-        </Button>
+          <Trash className="text-red-400 w-4 h-4" />
+        </div>
       )}
     </SidebarMenuButton>
   );
@@ -331,10 +334,10 @@ const Popup = () => {
   const INACTIVITY_THRESHOLD = timerReminderOffTime * 60 * 1000;
   const REMINDER_INTERVAL = timerReminderOnTime * 60 * 1000;
 
-  function setProjectData(newProjects: Record<string, Project>) {
-    setProjects(newProjects);
-    localStorage.setItem("projects", JSON.stringify(newProjects));
-  }
+  useEffect(() => {
+    if (Object.keys(projects).length == 0) return;
+    localStorage.setItem("projects", JSON.stringify(projects));
+  }, [projects]);
 
   function handleSetSelectedSection(newSection: string) {
     const newProject: Record<string, Project> = {
@@ -413,26 +416,25 @@ const Popup = () => {
     setLastElapsedInteractTime(selectedProject ? selectedProject.time : 0);
   }, [selectedProject, selectedSection]);
 
-  // Project update handler
   const handleUpdateProject = useCallback(
     (property: Property, amount: number) => {
-      const newProject = {
-        ...projects,
-        [selectedProjectName]: {
-          ...projects[selectedProjectName],
-          sections: {
-            ...projects[selectedProjectName].sections,
-            [selectedSection]: {
-              ...projects[selectedProjectName].sections[selectedSection],
-              [property]: amount,
+      setProjects((oldProjects) => {
+        return {
+          ...oldProjects,
+          [selectedProjectName]: {
+            ...oldProjects[selectedProjectName],
+            sections: {
+              ...oldProjects[selectedProjectName].sections,
+              [selectedSection]: {
+                ...oldProjects[selectedProjectName].sections[selectedSection],
+                [property]: amount,
+              },
             },
           },
-        },
-      };
-
-      setProjectData(newProject);
+        };
+      });
     },
-    [projects, selectedProjectName, selectedSection]
+    [selectedProjectName, selectedSection] // Removed 'projects' since we use oldProjects
   );
 
   // Timer disabler
@@ -469,7 +471,7 @@ const Popup = () => {
 
   function handleEnableEditingName() {
     setRenamingSection(true);
-    setNewSectionName(selectedSection);
+    setNewSectionName("");
   }
 
   function handleCreateNewSection() {
@@ -484,23 +486,24 @@ const Popup = () => {
       }
     }
 
-    let newProject = {
-      ...projects,
-      [selectedProjectName]: {
-        ...projects[selectedProjectName],
-        sections: {
-          ...projects[selectedProjectName].sections,
-          [new_title]: {
-            stitches: 0,
-            rows: 0,
-            repeats: 0,
-            time: 0,
+    setProjects((projects) => {
+      return {
+        ...projects,
+        [selectedProjectName]: {
+          ...projects[selectedProjectName],
+          sections: {
+            ...projects[selectedProjectName].sections,
+            [new_title]: {
+              stitches: 0,
+              rows: 0,
+              repeats: 0,
+              time: 0,
+            },
           },
         },
-      },
-    };
+      };
+    });
 
-    setProjectData(newProject);
     handleSetSelectedSection(new_title);
     setIsShowingTotals(false);
     setTimeIsOn(false);
@@ -513,7 +516,7 @@ const Popup = () => {
 
     delete newProject[selectedProjectName].sections[name];
 
-    setProjectData(newProject);
+    setProjects(newProject);
   }
 
   function handleRenameSelectedSection() {
@@ -545,7 +548,7 @@ const Popup = () => {
     delete newProject[selectedProjectName].sections[selectedSection];
     newProject[selectedProjectName].selectedSection = newSectionName;
 
-    setProjectData(newProject);
+    setProjects(newProject);
     handleSetSelectedSection(newSectionName);
     setRenamingSection(false);
   }
@@ -582,6 +585,7 @@ const Popup = () => {
                         handleDeleteSection(name);
                       }}
                       canDelete={name != selectedSection}
+                      selected={name == selectedSection}
                     />
                   );
                 }
