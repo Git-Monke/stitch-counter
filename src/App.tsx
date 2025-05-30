@@ -174,7 +174,7 @@ function App() {
 
     window.open(
       `${currentOrigin}`,
-      "Stitch Tracker :D",
+      "Loop Log :D",
       "width=280,height=220,resizable=no,toolbar=no,menubar=no,alwaysRaised=yes"
     );
   };
@@ -221,9 +221,7 @@ function App() {
         <div className="container mx-4 px-2 h-16 flex items-center justify-between">
           <div className="flex gap-4 items-center">
             <Scissors className="h-8 w-8" />
-            <span className="font-bold text-xl tracking-light">
-              Stitch Tracker!
-            </span>
+            <span className="font-bold text-xl tracking-light">Loop Log!</span>
           </div>
         </div>
       </header>
