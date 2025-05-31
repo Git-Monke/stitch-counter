@@ -377,27 +377,16 @@ function App() {
               <div className="flex items-center justify-between gap-4 space-between">
                 <p className="flex items-center">Turn Off</p>
                 <Switch
-                  checked={timerReminderOn}
-                  onCheckedChange={setTimerReminderOn}
+                  checked={timerReminderOff}
+                  onCheckedChange={setTimerReminderOff}
                 />
               </div>
               <div className="flex items-center justify-between gap-4 space-between">
                 <p className="flex items-center w-full">Turn On</p>
                 <Switch
-                  checked={timerReminderOff}
-                  onCheckedChange={setTimerReminderOff}
+                  checked={timerReminderOn}
+                  onCheckedChange={setTimerReminderOn}
                 />
-              </div>
-              <div className="flex justify-between items-center">
-                <Input
-                  value={timerReminderOnTime}
-                  type="number"
-                  onChange={(e) => {
-                    setTimerReminderOnTime(parseInt(e.target.value));
-                  }}
-                  className="max-w-[60px]"
-                ></Input>
-                <p> Minutes</p>
               </div>
               <div className="flex justify-between items-center">
                 <Input
@@ -405,6 +394,17 @@ function App() {
                   type="number"
                   onChange={(e) => {
                     setTimerReminderOffTime(parseInt(e.target.value));
+                  }}
+                  className="max-w-[60px]"
+                ></Input>
+                <p> Minutes</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <Input
+                  value={timerReminderOnTime}
+                  type="number"
+                  onChange={(e) => {
+                    setTimerReminderOnTime(parseInt(e.target.value));
                   }}
                   className="max-w-[60px]"
                 ></Input>

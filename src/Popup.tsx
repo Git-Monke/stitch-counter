@@ -446,7 +446,12 @@ const Popup = () => {
       playNotifyTimerOff();
       toast("Timer disabled due to inactivity");
     }
-  }, [selectedProject, selectedSection, lastInteractElapsedTime]);
+  }, [
+    selectedProject,
+    selectedSection,
+    lastInteractElapsedTime,
+    INACTIVITY_THRESHOLD,
+  ]);
 
   useEffect(() => {
     if (!timerReminderOn) return;
@@ -467,7 +472,7 @@ const Popup = () => {
         clearInterval(reminderIntervalRef.current);
       }
     };
-  }, [timerIsOn]);
+  }, [timerIsOn, timerReminderOn, REMINDER_INTERVAL]);
 
   function handleEnableEditingName() {
     setRenamingSection(true);
