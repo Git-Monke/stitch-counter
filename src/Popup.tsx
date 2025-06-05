@@ -450,6 +450,7 @@ const Popup = () => {
     selectedProject,
     selectedSection,
     lastInteractElapsedTime,
+    timerReminderOnTime,
     INACTIVITY_THRESHOLD,
   ]);
 
@@ -472,7 +473,7 @@ const Popup = () => {
         clearInterval(reminderIntervalRef.current);
       }
     };
-  }, [timerIsOn, timerReminderOn, REMINDER_INTERVAL]);
+  }, [timerIsOn, timerReminderOn, timerReminderOffTime, REMINDER_INTERVAL]);
 
   function handleEnableEditingName() {
     setRenamingSection(true);
